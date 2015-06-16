@@ -33,6 +33,13 @@ function usbtap.packet(pinfo, tvb, usbp)
    end
 end
 
+function usbtap.draw()
+   local ftdi = FTDI.new(outdata, indata)
+
+   ftdi:process()
+end
+
+
 BBuf = {}
 BBuf.__index = BBuf
 function BBuf.new(ba)
@@ -67,104 +74,130 @@ function BBuf:read_uint16()
    return bl + bh * 256
 end
 
-function usbtap.draw()
-   outdata = BBuf.new(outdata)
-   indata = BBuf.new(indata)
 
-   while not outdata:eof() do
-      local opb = outdata:read_uint8()
+FTDI = {}
+FTDI.__index = FTDI
 
-      local ops = {
-         [0x19] = function()
-            local len = outdata:read_uint16() + 1
-            print("data out bytes", len)
-            outdata:skip(len)
-         end,
-         [0x1b] = function()
-            local len = outdata:read_uint8()
-            local outval = outdata:read_uint8()
-            print("data out bits", len, "outval", outval)
-         end,
-         [0x28] = function()
-            local len = outdata:read_uint16() + 1
-            print("data in bytes", len)
-            indata:skip(len)
-         end,
-         [0x2a] = function()
-            local len = outdata:read_uint8() + 1
-            local inval = indata:read_uint8()
-            print("data in bits", len, "inval", inval)
-         end,
-         [0x39] = function()
-            local len = outdata:read_uint16() + 1
-            print("data in out bytes", len)
-            outdata:skip(len)
-            indata:skip(len)
-         end,
-         [0x3b] = function()
-            local len = outdata:read_uint8() + 1
-            local outval = outdata:read_uint8()
-            local inval = indata:read_uint8()
-            print("data in out bits", len, "outval", outval, "inval", inval)
-         end,
-         [0x4b] = function()
-            local len = outdata:read_uint8() + 1
-            local val = outdata:read_uint8()
-            print("tms data out len", len, "val", val)
-         end,
-         [0x6b] = function()
-            local len = outdata:read_uint8() + 1
-            local outval = outdata:read_uint8()
-            local inval = indata:read_uint8()
-            print("tms data inout len", len, "outval", outval, "inval", inval)
-         end,
-         [0x80] = function()
-            local val = outdata:read_uint8()
-            local dir = outdata:read_uint8()
-            print("set lo", val, dir)
-         end,
-         [0x82] = function()
-            local val = outdata:read_uint8()
-            local dir = outdata:read_uint8()
-            print("set hi", val, dir)
-         end,
-         [0x85] = function()
-            print("disconnect loopback")
-         end,
-         [0x86] = function()
-            local div = outdata:read_uint16()
-            print("set tck divisor", div)
-         end,
-         [0x87] = function()
-            print("flush")
-         end,
-         [0x8a] = function()
-            print("disable clk divide")
-         end,
-         [0x8d] = function()
-            print("disable 3 phase data clocking")
-         end,
-         [0x97] = function()
-            print("disable adaptive clocking")
-         end,
-      }
+function FTDI.new(outdata, indata)
+   local self = setmetatable({}, FTDI)
+   self.o = BBuf.new(outdata)
+   self.i = BBuf.new(indata)
+   return self
+end
 
-      if ops[opb] then
-         if not pcall(ops[opb], outdata) then
-            print(("error processing op %02x"):format(opb))
-            print("outpos", outdata.pos, outdata.value:len())
-            print("inpos", indata.pos, indata.value:len())
-         end
-      else
-         if indata:peek_uint8() == 0xfa then
-            indata:read_uint8()
-            print(string.format("invalid op %02x", opb))
-            if indata:read_uint8() ~= opb then
-               print("no error from ftdi")
-            end
-         else
-            print(string.format("unknown op %02x", opb))
-         end
+function FTDI:cmd_19()
+   local len = self.o:read_uint16() + 1
+   print("data out bytes", len)
+   self.o:skip(len)
+end
+
+function FTDI:cmd_1b()
+   local len = self.o:read_uint8()
+   local outval = self.o:read_uint8()
+   print("data out bits", len, "outval", outval)
+end
+
+function FTDI:cmd_28()
+   local len = self.o:read_uint16() + 1
+   print("data in bytes", len)
+   self.i:skip(len)
+end
+
+function FTDI:cmd_2a()
+   local len = self.o:read_uint8() + 1
+   local inval = self.i:read_uint8()
+   print("data in bits", len, "inval", inval)
+end
+
+function FTDI:cmd_39()
+   local len = self.o:read_uint16() + 1
+   print("data in out bytes", len)
+   self.o:skip(len)
+   self.i:skip(len)
+end
+
+function FTDI:cmd_3b()
+   local len = self.o:read_uint8() + 1
+   local outval = self.o:read_uint8()
+   local inval = self.i:read_uint8()
+   print("data in out bits", len, "outval", outval, "inval", inval)
+end
+
+function FTDI:cmd_4b()
+   local len = self.o:read_uint8() + 1
+   local val = self.o:read_uint8()
+   print("tms data out len", len, "val", val)
+end
+
+function FTDI:cmd_6b()
+   local len = self.o:read_uint8() + 1
+   local outval = self.o:read_uint8()
+   local inval = self.i:read_uint8()
+   print("tms data inout len", len, "outval", outval, "inval", inval)
+end
+
+function FTDI:cmd_80()
+   local val = self.o:read_uint8()
+   local dir = self.o:read_uint8()
+   print("set lo", val, dir)
+end
+
+function FTDI:cmd_82()
+   local val = self.o:read_uint8()
+   local dir = self.o:read_uint8()
+   print("set hi", val, dir)
+end
+
+function FTDI:cmd_85()
+   print("disconnect loopback")
+end
+
+function FTDI:cmd_86()
+   local div = self.o:read_uint16()
+   print("set tck divisor", div)
+end
+
+function FTDI:cmd_87()
+   print("flush")
+end
+
+function FTDI:cmd_8a()
+   print("disable clk divide")
+end
+
+function FTDI:cmd_8d()
+   print("disable 3 phase data clocking")
+end
+
+function FTDI:cmd_97()
+   print("disable adaptive clocking")
+end
+
+function FTDI:cmd_unknown(opb)
+   if self.i:peek_uint8() == 0xfa then
+      self.i:read_uint8()
+      print(string.format("invalid op %02x", opb))
+      if self.i:read_uint8() ~= opb then
+         print("no error from ftdi")
+      end
+   else
+      print(string.format("unknown op %02x", opb))
+   end
+end
+
+function FTDI:process()
+   while not self.o:eof() do
+      local opb = self.o:read_uint8()
+
+      local fun = self[("cmd_%02x"):format(opb)]
+      if not fun then
+         fun = self["cmd_unknown"]
+      end
+
+      if not pcall(fun, self, opb) then
+         print(("error processing op %02x"):format(opb))
+         print("outpos", self.o.pos, self.o.value:len())
+         print("inpos", self.i.pos, self.i.value:len())
       end
    end
 end
