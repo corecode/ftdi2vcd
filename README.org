@@ -5,9 +5,11 @@ MPSSE commands to signal dumps in VCD format.
 
 ** Usage
 
+#+BEGIN_SRC sh
 tshark -q -r mydump.pcapng -X lua_script:ftdi2vcd.lua > mydump.vcd
+#+END_SRC
 
 ** Feedback
 
 Always happy to hear from users or passers-by.  Contact me at
-Simon Schubert <2@0x2c.org>.
+/Simon Schubert <2@0x2c.org>/.
