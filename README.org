@@ -1,0 +1,13 @@
+* FTDI to VCD
+
+ftdi2vcd is a wireshark lua plugin to convert USB captures of FTDI
+MPSSE commands to signal dumps in VCD format.
+
+** Usage
+
+tshark -q -r mydump.pcapng -X lua_script:ftdi2vcd.lua > mydump.vcd
+
+** Feedback
+
+Always happy to hear from users or passers-by.  Contact me at
+Simon Schubert <2@0x2c.org>.
