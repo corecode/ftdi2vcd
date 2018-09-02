@@ -18,7 +18,7 @@
 
 
 local usb_transfer_type_f = Field.new("usb.transfer_type")
-local usb_direction_f = Field.new("usb.endpoint_number.direction")
+local usb_direction_f = Field.new("usb.endpoint_address.direction")
 local usb_capdata_f = Field.new("usb.capdata")
 
 
