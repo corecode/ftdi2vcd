@@ -119,7 +119,7 @@ function FTDI:cmd_19()
 end
 
 function FTDI:cmd_1b()
-   local len = self.o:read_uint8()
+   local len = self.o:read_uint8() + 1
    local outval = self.o:read_uint8()
    self:comment("data out bits", len, "outval", outval)
    self:clock(len, {TDI = outval})
