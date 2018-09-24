@@ -136,7 +136,7 @@ end
 
 function FTDI:cmd_2a()
    local len = self.o:read_uint8() + 1
-   local inval = self.i:read_uint8()
+   local inval = bit32.rshift(self.i:read_uint8(), 8 - len)
    self:comment("data in bits", len, "inval", inval)
    self:clock(len, {TDO = inval})
 end
