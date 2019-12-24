@@ -18,7 +18,7 @@
 
 
 local usb_transfer_type_f = Field.new("usb.transfer_type")
-local usb_direction_f = Field.new("usb.endpoint_number.direction")
+local usb_direction_f = Field.new("usb.endpoint_address.direction")
 local usb_capdata_f = Field.new("usb.capdata")
 
 
@@ -119,7 +119,7 @@ function FTDI:cmd_19()
 end
 
 function FTDI:cmd_1b()
-   local len = self.o:read_uint8()
+   local len = self.o:read_uint8() + 1
    local outval = self.o:read_uint8()
    self:comment("data out bits", len, "outval", outval)
    self:clock(len, {TDI = outval})
@@ -136,7 +136,7 @@ end
 
 function FTDI:cmd_2a()
    local len = self.o:read_uint8() + 1
-   local inval = self.i:read_uint8()
+   local inval = bit32.rshift(self.i:read_uint8(), 8 - len)
    self:comment("data in bits", len, "inval", inval)
    self:clock(len, {TDO = inval})
 end
